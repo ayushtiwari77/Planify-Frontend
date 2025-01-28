@@ -4,9 +4,12 @@ import toast from "react-hot-toast";
 import { Navigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { setIsAuth } from "../app/todoSlice";
+import { useEffect, useState } from "react";
 
 const ContentPage = () => {
   const dispatch = useDispatch();
+
+  const [todos, setTodos] = useState([]);
 
   async function handleLogout() {
     try {
@@ -23,11 +26,53 @@ const ContentPage = () => {
     }
   }
 
+  async function handleCreate(e) {
+    e.preventDefault();
+    const title = e.target[0].value;
+    const description = e.target[1].value;
+    try {
+      const response = await axios.post(
+        `${import.meta.env.VITE_BACKEND_PORT}/todo/create`,
+        {
+          title,
+          description,
+        },
+        {
+          withCredentials: true,
+        }
+      );
+
+      e.target[0].value = "";
+      e.target[1].value = "";
+
+      toast.success(response.data.message);
+    } catch (error) {
+      toast.error(error.response.data.message);
+    }
+  }
+
+  useEffect(() => {
+    async function getAllTasks() {
+      try {
+        const response = await axios.get(
+          `${import.meta.env.VITE_BACKEND_PORT}/todo/bring`,
+          {
+            withCredentials: true,
+          }
+        );
+        setTodos(response.data);
+      } catch (error) {
+        toast.error(error.response.data.message);
+      }
+    }
+    getAllTasks();
+  }, [todos]);
+
   return (
     <div className="min-h-screen w-screen  bg-blue-900 p-10 flex flex-col items-center gap-[50px]">
       <div className="flex items-center justify-between w-3/4">
         <h1 className="text-yellow-400 text-3xl font-bold underline ">
-          Welcome Back Sonu Chinaar
+          Welcome Back User
         </h1>
         <button
           onClick={handleLogout}
@@ -38,7 +83,10 @@ const ContentPage = () => {
       </div>
 
       <div>
-        <form className="text-3xl bg-amber-400 text-black flex flex-col gap-5 p-4 items-center my-5">
+        <form
+          onSubmit={handleCreate}
+          className="text-3xl bg-amber-400 text-black flex flex-col gap-5 p-4 items-center my-5"
+        >
           <div className="flex gap-4 items-center  justify-center">
             <label htmlFor="title">Title :</label>
             <input
@@ -71,8 +119,9 @@ const ContentPage = () => {
       </div>
 
       <div className="bg-blue-900 w-[90%] min-h-[50vh] p-3 flex flex-col items-center gap-16">
-        <Card />
-        <Card />
+        {todos.map((todo, ind) => (
+          <Card key={ind} todo={todo} />
+        ))}
       </div>
     </div>
   );
